@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-tilelayer-wmts.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/GazonNiveauB500m_2.js"></script>
+        <script src="data/GazonNiveauB500m_3.js"></script>
+        <script src="data/GazonNiveauA500m_4.js"></script>
+        <script src="data/GazonNiveauA500m_5.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        document.querySelector(".leaflet-popup-pane").addEventListener("load", function(event) {
+          var tagName = event.target.tagName,
+            popup = map._popup;
+          // Also check if flag is already set.
+          if (tagName === "IMG" && popup && !popup._updated) {
+            popup._updated = true; // Set flag to prevent looping.
+            popup.update();
+          }
+        }, true);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_Luchtfoto2024Ortho8cmRGB_0');
+        map.getPane('pane_Luchtfoto2024Ortho8cmRGB_0').style.zIndex = 400;
+        var layer_Luchtfoto2024Ortho8cmRGB_0 = L.tileLayer.wmts('https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0', {
+            pane: 'pane_Luchtfoto2024Ortho8cmRGB_0',
+            layer: '2024_orthoHR',
+            tilematrixSet: 'OGC:1.0:GoogleMapsCompatible',
+            format: 'image/jpeg',
+            style: 'default',
+            uppercase: true,
+            transparent: true,
+            continuousWorld : true,
+            opacity: 1.0,
+            attribution: '',
+        });
+        map.addLayer(layer_Luchtfoto2024Ortho8cmRGB_0);
+        map.createPane('pane_GoogleMaps_1');
+        map.getPane('pane_GoogleMaps_1').style.zIndex = 401;
+        var layer_GoogleMaps_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMaps_1',
+            opacity: 0.6,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 22
+        });
+        layer_GoogleMaps_1;
+        map.addLayer(layer_GoogleMaps_1);
+        function pop_GazonNiveauB500m_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td class="visible-with-data" id="Gras ID"colspan="2"><strong>Gras ID</strong><br />' + (feature.properties['Gras ID'] !== null ? autolinker.link(feature.properties['Gras ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Documenten"colspan="2"><strong>Documenten</strong><br />' + (feature.properties['Documenten'] !== null ? autolinker.link(feature.properties['Documenten'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheersgeb"colspan="2"><strong>Beheersgeb</strong><br />' + (feature.properties['Beheersgeb'] !== null ? autolinker.link(feature.properties['Beheersgeb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Struct"colspan="2"><strong>STD_Struct</strong><br />' + (feature.properties['STD_Struct'] !== null ? autolinker.link(feature.properties['STD_Struct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheergroe"colspan="2"><strong>Beheergroe</strong><br />' + (feature.properties['Beheergroe'] !== null ? autolinker.link(feature.properties['Beheergroe'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Groenfunct"colspan="2"><strong>Groenfunct</strong><br />' + (feature.properties['Groenfunct'] !== null ? autolinker.link(feature.properties['Groenfunct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Tuinrustgr"colspan="2"><strong>Tuinrustgr</strong><br />' + (feature.properties['Tuinrustgr'] !== null ? autolinker.link(feature.properties['Tuinrustgr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Functie on"colspan="2"><strong>Functie on</strong><br />' + (feature.properties['Functie on'] !== null ? autolinker.link(feature.properties['Functie on'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Einde cont"colspan="2"><strong>Einde cont</strong><br />' + (feature.properties['Einde cont'] !== null ? autolinker.link(feature.properties['Einde cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Nummer"colspan="2"><strong>Nummer</strong><br />' + (feature.properties['Nummer'] !== null ? autolinker.link(feature.properties['Nummer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Afbeelding"colspan="2"><strong>Afbeelding</strong><br />' + (feature.properties['Afbeelding'] !== null ? autolinker.link(feature.properties['Afbeelding'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Catagorie"colspan="2"><strong>Catagorie</strong><br />' + (feature.properties['Catagorie'] !== null ? autolinker.link(feature.properties['Catagorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Opmerkinge"colspan="2"><strong>Opmerkinge</strong><br />' + (feature.properties['Opmerkinge'] !== null ? autolinker.link(feature.properties['Opmerkinge'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Grastype"colspan="2"><strong>Grastype</strong><br />' + (feature.properties['Grastype'] !== null ? autolinker.link(feature.properties['Grastype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD Grasty"colspan="2"><strong>STD Grasty</strong><br />' + (feature.properties['STD Grasty'] !== null ? autolinker.link(feature.properties['STD Grasty'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Aanlegjaar"colspan="2"><strong>Aanlegjaar</strong><br />' + (feature.properties['Aanlegjaar'] !== null ? autolinker.link(feature.properties['Aanlegjaar'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Oppervlakt"colspan="2"><strong>Oppervlakt</strong><br />' + (feature.properties['Oppervlakt'] !== null ? autolinker.link(feature.properties['Oppervlakt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Begin cont"colspan="2"><strong>Begin cont</strong><br />' + (feature.properties['Begin cont'] !== null ? autolinker.link(feature.properties['Begin cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Harde rand"colspan="2"><strong>Harde rand</strong><br />' + (feature.properties['Harde rand'] !== null ? autolinker.link(feature.properties['Harde rand'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Zachte ran"colspan="2"><strong>Zachte ran</strong><br />' + (feature.properties['Zachte ran'] !== null ? autolinker.link(feature.properties['Zachte ran'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Woonplaats"colspan="2"><strong>Woonplaats</strong><br />' + (feature.properties['Woonplaats'] !== null ? autolinker.link(feature.properties['Woonplaats'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Wijk"colspan="2"><strong>Wijk</strong><br />' + (feature.properties['Wijk'] !== null ? autolinker.link(feature.properties['Wijk'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Buurt"colspan="2"><strong>Buurt</strong><br />' + (feature.properties['Buurt'] !== null ? autolinker.link(feature.properties['Buurt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Openbare r"colspan="2"><strong>Openbare r</strong><br />' + (feature.properties['Openbare r'] !== null ? autolinker.link(feature.properties['Openbare r'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="KL_Maaireg"colspan="2"><strong>KL_Maaireg</strong><br />' + (feature.properties['KL_Maaireg'] !== null ? autolinker.link(feature.properties['KL_Maaireg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Maaire"colspan="2"><strong>STD_Maaire</strong><br />' + (feature.properties['STD_Maaire'] !== null ? autolinker.link(feature.properties['STD_Maaire'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IMGEO code'] !== null ? autolinker.link(feature.properties['IMGEO code'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Binnen beb"colspan="2"><strong>Binnen beb</strong><br />' + (feature.properties['Binnen beb'] !== null ? autolinker.link(feature.properties['Binnen beb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd'] !== null ? autolinker.link(feature.properties['Uitgevoerd'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Afgehandel'] !== null ? autolinker.link(feature.properties['Afgehandel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Datum acti'] !== null ? autolinker.link(feature.properties['Datum acti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd_1'] !== null ? autolinker.link(feature.properties['Uitgevoerd_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Omtrek"colspan="2"><strong>Omtrek</strong><br />' + (feature.properties['Omtrek'] !== null ? autolinker.link(feature.properties['Omtrek'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_GazonNiveauB500m_2_0() {
+            return {
+                pane: 'pane_GazonNiveauB500m_2',
+                opacity: 1,
+                color: 'rgba(38,89,128,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(55,126,184,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_GazonNiveauB500m_2');
+        map.getPane('pane_GazonNiveauB500m_2').style.zIndex = 402;
+        map.getPane('pane_GazonNiveauB500m_2').style['mix-blend-mode'] = 'normal';
+        var layer_GazonNiveauB500m_2 = new L.geoJson(json_GazonNiveauB500m_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazonNiveauB500m_2',
+            layerName: 'layer_GazonNiveauB500m_2',
+            pane: 'pane_GazonNiveauB500m_2',
+            onEachFeature: pop_GazonNiveauB500m_2,
+            style: style_GazonNiveauB500m_2_0,
+        });
+        bounds_group.addLayer(layer_GazonNiveauB500m_2);
+        map.addLayer(layer_GazonNiveauB500m_2);
+        function pop_GazonNiveauB500m_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td class="visible-with-data" id="Gras ID"colspan="2"><strong>Gras ID</strong><br />' + (feature.properties['Gras ID'] !== null ? autolinker.link(feature.properties['Gras ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Documenten"colspan="2"><strong>Documenten</strong><br />' + (feature.properties['Documenten'] !== null ? autolinker.link(feature.properties['Documenten'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheersgeb"colspan="2"><strong>Beheersgeb</strong><br />' + (feature.properties['Beheersgeb'] !== null ? autolinker.link(feature.properties['Beheersgeb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Struct"colspan="2"><strong>STD_Struct</strong><br />' + (feature.properties['STD_Struct'] !== null ? autolinker.link(feature.properties['STD_Struct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheergroe"colspan="2"><strong>Beheergroe</strong><br />' + (feature.properties['Beheergroe'] !== null ? autolinker.link(feature.properties['Beheergroe'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Groenfunct"colspan="2"><strong>Groenfunct</strong><br />' + (feature.properties['Groenfunct'] !== null ? autolinker.link(feature.properties['Groenfunct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Tuinrustgr"colspan="2"><strong>Tuinrustgr</strong><br />' + (feature.properties['Tuinrustgr'] !== null ? autolinker.link(feature.properties['Tuinrustgr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Functie on"colspan="2"><strong>Functie on</strong><br />' + (feature.properties['Functie on'] !== null ? autolinker.link(feature.properties['Functie on'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Einde cont"colspan="2"><strong>Einde cont</strong><br />' + (feature.properties['Einde cont'] !== null ? autolinker.link(feature.properties['Einde cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Nummer"colspan="2"><strong>Nummer</strong><br />' + (feature.properties['Nummer'] !== null ? autolinker.link(feature.properties['Nummer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Afbeelding"colspan="2"><strong>Afbeelding</strong><br />' + (feature.properties['Afbeelding'] !== null ? autolinker.link(feature.properties['Afbeelding'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Catagorie"colspan="2"><strong>Catagorie</strong><br />' + (feature.properties['Catagorie'] !== null ? autolinker.link(feature.properties['Catagorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Opmerkinge"colspan="2"><strong>Opmerkinge</strong><br />' + (feature.properties['Opmerkinge'] !== null ? autolinker.link(feature.properties['Opmerkinge'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Grastype"colspan="2"><strong>Grastype</strong><br />' + (feature.properties['Grastype'] !== null ? autolinker.link(feature.properties['Grastype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD Grasty"colspan="2"><strong>STD Grasty</strong><br />' + (feature.properties['STD Grasty'] !== null ? autolinker.link(feature.properties['STD Grasty'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Aanlegjaar"colspan="2"><strong>Aanlegjaar</strong><br />' + (feature.properties['Aanlegjaar'] !== null ? autolinker.link(feature.properties['Aanlegjaar'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Oppervlakt"colspan="2"><strong>Oppervlakt</strong><br />' + (feature.properties['Oppervlakt'] !== null ? autolinker.link(feature.properties['Oppervlakt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Begin cont"colspan="2"><strong>Begin cont</strong><br />' + (feature.properties['Begin cont'] !== null ? autolinker.link(feature.properties['Begin cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Harde rand"colspan="2"><strong>Harde rand</strong><br />' + (feature.properties['Harde rand'] !== null ? autolinker.link(feature.properties['Harde rand'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Zachte ran"colspan="2"><strong>Zachte ran</strong><br />' + (feature.properties['Zachte ran'] !== null ? autolinker.link(feature.properties['Zachte ran'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Woonplaats"colspan="2"><strong>Woonplaats</strong><br />' + (feature.properties['Woonplaats'] !== null ? autolinker.link(feature.properties['Woonplaats'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Wijk"colspan="2"><strong>Wijk</strong><br />' + (feature.properties['Wijk'] !== null ? autolinker.link(feature.properties['Wijk'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Buurt"colspan="2"><strong>Buurt</strong><br />' + (feature.properties['Buurt'] !== null ? autolinker.link(feature.properties['Buurt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Openbare r"colspan="2"><strong>Openbare r</strong><br />' + (feature.properties['Openbare r'] !== null ? autolinker.link(feature.properties['Openbare r'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="KL_Maaireg"colspan="2"><strong>KL_Maaireg</strong><br />' + (feature.properties['KL_Maaireg'] !== null ? autolinker.link(feature.properties['KL_Maaireg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Maaire"colspan="2"><strong>STD_Maaire</strong><br />' + (feature.properties['STD_Maaire'] !== null ? autolinker.link(feature.properties['STD_Maaire'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IMGEO code'] !== null ? autolinker.link(feature.properties['IMGEO code'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Binnen beb"colspan="2"><strong>Binnen beb</strong><br />' + (feature.properties['Binnen beb'] !== null ? autolinker.link(feature.properties['Binnen beb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd'] !== null ? autolinker.link(feature.properties['Uitgevoerd'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Afgehandel'] !== null ? autolinker.link(feature.properties['Afgehandel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Datum acti'] !== null ? autolinker.link(feature.properties['Datum acti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd_1'] !== null ? autolinker.link(feature.properties['Uitgevoerd_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Omtrek"colspan="2"><strong>Omtrek</strong><br />' + (feature.properties['Omtrek'] !== null ? autolinker.link(feature.properties['Omtrek'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_GazonNiveauB500m_3_0() {
+            return {
+                pane: 'pane_GazonNiveauB500m_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,166,184,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_GazonNiveauB500m_3');
+        map.getPane('pane_GazonNiveauB500m_3').style.zIndex = 403;
+        map.getPane('pane_GazonNiveauB500m_3').style['mix-blend-mode'] = 'normal';
+        var layer_GazonNiveauB500m_3 = new L.geoJson(json_GazonNiveauB500m_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazonNiveauB500m_3',
+            layerName: 'layer_GazonNiveauB500m_3',
+            pane: 'pane_GazonNiveauB500m_3',
+            onEachFeature: pop_GazonNiveauB500m_3,
+            style: style_GazonNiveauB500m_3_0,
+        });
+        bounds_group.addLayer(layer_GazonNiveauB500m_3);
+        map.addLayer(layer_GazonNiveauB500m_3);
+        function pop_GazonNiveauA500m_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td class="visible-with-data" id="Gras ID"colspan="2"><strong>Gras ID</strong><br />' + (feature.properties['Gras ID'] !== null ? autolinker.link(feature.properties['Gras ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Documenten"colspan="2"><strong>Documenten</strong><br />' + (feature.properties['Documenten'] !== null ? autolinker.link(feature.properties['Documenten'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheersgeb"colspan="2"><strong>Beheersgeb</strong><br />' + (feature.properties['Beheersgeb'] !== null ? autolinker.link(feature.properties['Beheersgeb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Struct"colspan="2"><strong>STD_Struct</strong><br />' + (feature.properties['STD_Struct'] !== null ? autolinker.link(feature.properties['STD_Struct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheergroe"colspan="2"><strong>Beheergroe</strong><br />' + (feature.properties['Beheergroe'] !== null ? autolinker.link(feature.properties['Beheergroe'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Groenfunct"colspan="2"><strong>Groenfunct</strong><br />' + (feature.properties['Groenfunct'] !== null ? autolinker.link(feature.properties['Groenfunct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Tuinrustgr"colspan="2"><strong>Tuinrustgr</strong><br />' + (feature.properties['Tuinrustgr'] !== null ? autolinker.link(feature.properties['Tuinrustgr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Functie on"colspan="2"><strong>Functie on</strong><br />' + (feature.properties['Functie on'] !== null ? autolinker.link(feature.properties['Functie on'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Einde cont"colspan="2"><strong>Einde cont</strong><br />' + (feature.properties['Einde cont'] !== null ? autolinker.link(feature.properties['Einde cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Nummer"colspan="2"><strong>Nummer</strong><br />' + (feature.properties['Nummer'] !== null ? autolinker.link(feature.properties['Nummer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Afbeelding"colspan="2"><strong>Afbeelding</strong><br />' + (feature.properties['Afbeelding'] !== null ? autolinker.link(feature.properties['Afbeelding'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Catagorie"colspan="2"><strong>Catagorie</strong><br />' + (feature.properties['Catagorie'] !== null ? autolinker.link(feature.properties['Catagorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Opmerkinge"colspan="2"><strong>Opmerkinge</strong><br />' + (feature.properties['Opmerkinge'] !== null ? autolinker.link(feature.properties['Opmerkinge'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Grastype"colspan="2"><strong>Grastype</strong><br />' + (feature.properties['Grastype'] !== null ? autolinker.link(feature.properties['Grastype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD Grasty"colspan="2"><strong>STD Grasty</strong><br />' + (feature.properties['STD Grasty'] !== null ? autolinker.link(feature.properties['STD Grasty'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Aanlegjaar"colspan="2"><strong>Aanlegjaar</strong><br />' + (feature.properties['Aanlegjaar'] !== null ? autolinker.link(feature.properties['Aanlegjaar'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Oppervlakt"colspan="2"><strong>Oppervlakt</strong><br />' + (feature.properties['Oppervlakt'] !== null ? autolinker.link(feature.properties['Oppervlakt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Begin cont"colspan="2"><strong>Begin cont</strong><br />' + (feature.properties['Begin cont'] !== null ? autolinker.link(feature.properties['Begin cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Harde rand"colspan="2"><strong>Harde rand</strong><br />' + (feature.properties['Harde rand'] !== null ? autolinker.link(feature.properties['Harde rand'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Zachte ran"colspan="2"><strong>Zachte ran</strong><br />' + (feature.properties['Zachte ran'] !== null ? autolinker.link(feature.properties['Zachte ran'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Woonplaats"colspan="2"><strong>Woonplaats</strong><br />' + (feature.properties['Woonplaats'] !== null ? autolinker.link(feature.properties['Woonplaats'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Wijk"colspan="2"><strong>Wijk</strong><br />' + (feature.properties['Wijk'] !== null ? autolinker.link(feature.properties['Wijk'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Buurt"colspan="2"><strong>Buurt</strong><br />' + (feature.properties['Buurt'] !== null ? autolinker.link(feature.properties['Buurt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Openbare r"colspan="2"><strong>Openbare r</strong><br />' + (feature.properties['Openbare r'] !== null ? autolinker.link(feature.properties['Openbare r'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="KL_Maaireg"colspan="2"><strong>KL_Maaireg</strong><br />' + (feature.properties['KL_Maaireg'] !== null ? autolinker.link(feature.properties['KL_Maaireg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Maaire"colspan="2"><strong>STD_Maaire</strong><br />' + (feature.properties['STD_Maaire'] !== null ? autolinker.link(feature.properties['STD_Maaire'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IMGEO code'] !== null ? autolinker.link(feature.properties['IMGEO code'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Binnen beb"colspan="2"><strong>Binnen beb</strong><br />' + (feature.properties['Binnen beb'] !== null ? autolinker.link(feature.properties['Binnen beb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd'] !== null ? autolinker.link(feature.properties['Uitgevoerd'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Afgehandel'] !== null ? autolinker.link(feature.properties['Afgehandel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Datum acti'] !== null ? autolinker.link(feature.properties['Datum acti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd_1'] !== null ? autolinker.link(feature.properties['Uitgevoerd_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Omtrek"colspan="2"><strong>Omtrek</strong><br />' + (feature.properties['Omtrek'] !== null ? autolinker.link(feature.properties['Omtrek'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_GazonNiveauA500m_4_0() {
+            return {
+                pane: 'pane_GazonNiveauA500m_4',
+                opacity: 1,
+                color: 'rgba(128,62,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,167,85,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_GazonNiveauA500m_4');
+        map.getPane('pane_GazonNiveauA500m_4').style.zIndex = 404;
+        map.getPane('pane_GazonNiveauA500m_4').style['mix-blend-mode'] = 'normal';
+        var layer_GazonNiveauA500m_4 = new L.geoJson(json_GazonNiveauA500m_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazonNiveauA500m_4',
+            layerName: 'layer_GazonNiveauA500m_4',
+            pane: 'pane_GazonNiveauA500m_4',
+            onEachFeature: pop_GazonNiveauA500m_4,
+            style: style_GazonNiveauA500m_4_0,
+        });
+        bounds_group.addLayer(layer_GazonNiveauA500m_4);
+        map.addLayer(layer_GazonNiveauA500m_4);
+        function pop_GazonNiveauA500m_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td class="visible-with-data" id="Gras ID"colspan="2"><strong>Gras ID</strong><br />' + (feature.properties['Gras ID'] !== null ? autolinker.link(feature.properties['Gras ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Documenten"colspan="2"><strong>Documenten</strong><br />' + (feature.properties['Documenten'] !== null ? autolinker.link(feature.properties['Documenten'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheersgeb"colspan="2"><strong>Beheersgeb</strong><br />' + (feature.properties['Beheersgeb'] !== null ? autolinker.link(feature.properties['Beheersgeb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Struct"colspan="2"><strong>STD_Struct</strong><br />' + (feature.properties['STD_Struct'] !== null ? autolinker.link(feature.properties['STD_Struct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Beheergroe"colspan="2"><strong>Beheergroe</strong><br />' + (feature.properties['Beheergroe'] !== null ? autolinker.link(feature.properties['Beheergroe'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Groenfunct"colspan="2"><strong>Groenfunct</strong><br />' + (feature.properties['Groenfunct'] !== null ? autolinker.link(feature.properties['Groenfunct'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Tuinrustgr"colspan="2"><strong>Tuinrustgr</strong><br />' + (feature.properties['Tuinrustgr'] !== null ? autolinker.link(feature.properties['Tuinrustgr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Functie on"colspan="2"><strong>Functie on</strong><br />' + (feature.properties['Functie on'] !== null ? autolinker.link(feature.properties['Functie on'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Einde cont"colspan="2"><strong>Einde cont</strong><br />' + (feature.properties['Einde cont'] !== null ? autolinker.link(feature.properties['Einde cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Nummer"colspan="2"><strong>Nummer</strong><br />' + (feature.properties['Nummer'] !== null ? autolinker.link(feature.properties['Nummer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Afbeelding"colspan="2"><strong>Afbeelding</strong><br />' + (feature.properties['Afbeelding'] !== null ? autolinker.link(feature.properties['Afbeelding'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Catagorie"colspan="2"><strong>Catagorie</strong><br />' + (feature.properties['Catagorie'] !== null ? autolinker.link(feature.properties['Catagorie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Opmerkinge"colspan="2"><strong>Opmerkinge</strong><br />' + (feature.properties['Opmerkinge'] !== null ? autolinker.link(feature.properties['Opmerkinge'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Grastype"colspan="2"><strong>Grastype</strong><br />' + (feature.properties['Grastype'] !== null ? autolinker.link(feature.properties['Grastype'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD Grasty"colspan="2"><strong>STD Grasty</strong><br />' + (feature.properties['STD Grasty'] !== null ? autolinker.link(feature.properties['STD Grasty'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Aanlegjaar"colspan="2"><strong>Aanlegjaar</strong><br />' + (feature.properties['Aanlegjaar'] !== null ? autolinker.link(feature.properties['Aanlegjaar'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Oppervlakt"colspan="2"><strong>Oppervlakt</strong><br />' + (feature.properties['Oppervlakt'] !== null ? autolinker.link(feature.properties['Oppervlakt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Begin cont"colspan="2"><strong>Begin cont</strong><br />' + (feature.properties['Begin cont'] !== null ? autolinker.link(feature.properties['Begin cont'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Harde rand"colspan="2"><strong>Harde rand</strong><br />' + (feature.properties['Harde rand'] !== null ? autolinker.link(feature.properties['Harde rand'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Zachte ran"colspan="2"><strong>Zachte ran</strong><br />' + (feature.properties['Zachte ran'] !== null ? autolinker.link(feature.properties['Zachte ran'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Woonplaats"colspan="2"><strong>Woonplaats</strong><br />' + (feature.properties['Woonplaats'] !== null ? autolinker.link(feature.properties['Woonplaats'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Wijk"colspan="2"><strong>Wijk</strong><br />' + (feature.properties['Wijk'] !== null ? autolinker.link(feature.properties['Wijk'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Buurt"colspan="2"><strong>Buurt</strong><br />' + (feature.properties['Buurt'] !== null ? autolinker.link(feature.properties['Buurt'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Openbare r"colspan="2"><strong>Openbare r</strong><br />' + (feature.properties['Openbare r'] !== null ? autolinker.link(feature.properties['Openbare r'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="KL_Maaireg"colspan="2"><strong>KL_Maaireg</strong><br />' + (feature.properties['KL_Maaireg'] !== null ? autolinker.link(feature.properties['KL_Maaireg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="STD_Maaire"colspan="2"><strong>STD_Maaire</strong><br />' + (feature.properties['STD_Maaire'] !== null ? autolinker.link(feature.properties['STD_Maaire'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IMGEO code'] !== null ? autolinker.link(feature.properties['IMGEO code'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Binnen beb"colspan="2"><strong>Binnen beb</strong><br />' + (feature.properties['Binnen beb'] !== null ? autolinker.link(feature.properties['Binnen beb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd'] !== null ? autolinker.link(feature.properties['Uitgevoerd'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Afgehandel'] !== null ? autolinker.link(feature.properties['Afgehandel'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Datum acti'] !== null ? autolinker.link(feature.properties['Datum acti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Uitgevoerd_1'] !== null ? autolinker.link(feature.properties['Uitgevoerd_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Omtrek"colspan="2"><strong>Omtrek</strong><br />' + (feature.properties['Omtrek'] !== null ? autolinker.link(feature.properties['Omtrek'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_GazonNiveauA500m_5_0() {
+            return {
+                pane: 'pane_GazonNiveauA500m_5',
+                opacity: 1,
+                color: 'rgba(56,128,54,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(88,238,83,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_GazonNiveauA500m_5');
+        map.getPane('pane_GazonNiveauA500m_5').style.zIndex = 405;
+        map.getPane('pane_GazonNiveauA500m_5').style['mix-blend-mode'] = 'normal';
+        var layer_GazonNiveauA500m_5 = new L.geoJson(json_GazonNiveauA500m_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_GazonNiveauA500m_5',
+            layerName: 'layer_GazonNiveauA500m_5',
+            pane: 'pane_GazonNiveauA500m_5',
+            onEachFeature: pop_GazonNiveauA500m_5,
+            style: style_GazonNiveauA500m_5_0,
+        });
+        bounds_group.addLayer(layer_GazonNiveauA500m_5);
+        map.addLayer(layer_GazonNiveauA500m_5);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: '<img src="legend/GazonNiveauA500m_5.png" /> Gazon Niveau A >500 m²', layer: layer_GazonNiveauA500m_5},
+            {label: '<img src="legend/GazonNiveauA500m_4.png" /> Gazon Niveau A <500 m²', layer: layer_GazonNiveauA500m_4},
+            {label: '<img src="legend/GazonNiveauB500m_3.png" /> Gazon Niveau B <500 m²', layer: layer_GazonNiveauB500m_3},
+            {label: '<img src="legend/GazonNiveauB500m_2.png" /> Gazon Niveau B >500 m²', layer: layer_GazonNiveauB500m_2},
+            {label: "Google Maps", layer: layer_GoogleMaps_1},
+            {label: "Luchtfoto 2024 Ortho 8cm RGB", layer: layer_Luchtfoto2024Ortho8cmRGB_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        </script>
+    </body>
+</html>
